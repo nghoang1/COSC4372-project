@@ -1,34 +1,47 @@
-function [outputImg, ourMask] = MRI_Radial(img, lines, pointsOnLine, maskType, maskPercent)
-    imageSize = size(img);
-    sample = (imageSize(1)/pointsOnLine);
-    Nsize = sample * imageSize(1) * 3;
+function [finalImg, ourMask] = MRI_Radial(img, lines, ppl, maskType, maskPercent)
+  
+    
+    sizeOfImage = size(img);
+    
+    
+    sample = (sizeOfImage(1)/ppl);
+    
+    Nsize = sizeOfImage(1) * 3 * sample;
 
-    imageGrid = zeros(Nsize, Nsize);
-    imageGrid(1:imageSize(1), 1:imageSize(1)) = img;
-    kSpace = fftshift(fft2(imageGrid));
-
+    ourArr = zeros(Nsize, Nsize);
+    ourArr(1:sizeOfImage(1), 1:sizeOfImage(1)) = img;
+    kSpaceConvert = fftshift(fft2(ourArr));
+    
+    
     i=1;
     j=1;
-    for kSpace =- Nsize/2:sample:Nsize/2
-       for theta = 0 : pi/lines : (pi-pi / lines)
+    delT = lines;
 
-           radial_X(i, j) = kSpace * cos(-theta) + Nsize / 2;
-           radial_Y(i, j) = kSpace * sin(-theta) + Nsize / 2;
+    for kSpaceConvert=-Nsize/2:sample:Nsize/2
+
+       for theta = 0:pi/delT:(pi-pi/delT)
+
+           radialX(i, j) = kSpaceConvert*cos(-theta)+ Nsize/2;
+           radialY(i, j) = kSpaceConvert*sin(-theta)+ Nsize/2;
            
-           i = i + 1;
+           i = i+1;
        end
-       j = j + 1;
+
+       j = j+1;
        i = 1;
+
     end
     
-    %radial view sampling
-    radialView = interp2(F, radial_X, radial_Y, 'bicubic');
+    
+    % Start the sampling for the radial view
+
+    radialView = interp2(fftshift(fft2(ourArr)), radialX, radialY, 'bicubic');
     radialView(isnan(radialView)) = 0;
+    %interpolate
 
     S = size(radialView);
     maskedRadialView = zeros(S);
     ourMask = getMask(S, maskType, maskPercent);
-
     for i=1:1:S(1)
         for j=1:1:S(2)
             if ourMask(i,j) == 1
@@ -37,18 +50,20 @@ function [outputImg, ourMask] = MRI_Radial(img, lines, pointsOnLine, maskType, m
         end
     end
 
-    %Inverse Fourier Transformation
-    IR = zeros(size(maskedRadialView));    
-    IR = InverseFourierTransformation(IR, maskedRadialView, lines);
+    
+    IR = zeros(size(maskedRadialView));
+    
+    %Inverse fast fourier transform
 
-    %image recreation
+    for i = 1:delT
+
+       IR(i, :) =fliplr(fftshift((abs(ifft((maskedRadialView(i, :))))))); 
+
+    end
+    %recreating the image for display
     imgCreator = iradon(IR', 180/delT);
     imgCreator = rot90(imgCreator(16:sizeOfImage+15, 16:sizeOfImage+15),2);
-    outputImg = imgCreator;  
-end
 
-function [radialView] = InverseFourierTransformation(radialView, maskedView, lines)
-    for i = 1:lines
-        radialView = fliplr(fftshift((abs(ifft((maskedView(i, :)))))));
-    end
+    finalImg = imgCreator;
+       
 end
