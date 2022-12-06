@@ -22,7 +22,7 @@ function [cart, mask] = MRI_Cartesian(img, nlines, npoints, mType, mPercent)
         end
     end
     
-    grid(m(1)/2-sample_size(1)/2+1:(m(1)/2+sample_size(1)/2),  m(2)/2-sample_size(2)/2+1:(m(2)/2+sample_size(2)/2)) = mSample;
+    grid(m(1)/2-sample_size(1)/2+1:(m(1)/2+sample_size(1)/2),  m(2)/2-sample_size(2)/2+1:(m(2)/2+sample_size(2)/2)) = sample_zeros;
     grid(isnan(grid)) = 0;
     
     % Fourier transform
@@ -35,6 +35,5 @@ function [cart, mask] = MRI_Cartesian(img, nlines, npoints, mType, mPercent)
     
     cart = cart/(max(cart(:))) * 255;
 
-    close(generate)
+    
 end
-
